@@ -5,7 +5,7 @@
 #include <vector>
 
 // 単位はrad
-std::vector<double> tan_table;
+std::vector<double> atan_table;
 // 参考サイトではn=18 実際にやってみた感じ、n=18で有効数字5~6桁くらい出た。
 // ちなみにn=100とかにすると2^i乗が計算できなくなって死ぬので注意
 int n;
@@ -17,63 +17,53 @@ double radToDeg(double rad) { return rad * 180.0 / M_PI; }
 void generateTable() {
   long long j = 1;
   for (int i = 0; i < n; i++) {
-    tan_table.push_back(atan(1.0 / (double)j));
-    m *= cos(tan_table[i]);
-    printf("tan_table[%d] = %f, m = %f\r\n", tan_table[i], m);
+    atan_table.push_back(atan(1.0 / (double)j));
+    m *= cos(atan_table[i]);
+    printf("atan_table[%d] = %f, m = %f\r\n", atan_table[i], m);
     j *= 2;
   }
 }
-/**
- * @brief
- *
- * @param x0
- * @param y0
- * @param theta 0 <= theta <= 2 / pi
- * @return std::pair<double, double> first = x,second = y
- */
-std::pair<double, double> calculateCordic1(const double x0, const double y0,
-                                           const double theta) {
-  double current_theta = atan(y0 / x0);
-  double x = x0;
-  double y = y0;
+
+struct Vector {
+  double x;
+  double y;
+  double theta;
+};
+
+Vector calculateCordic1(const Vector v0, double target) {
+  double sign, xi, yi;
+  Vector v = v0;
   long long t = 2;
   for (int i = 1; i < n; i++) {
-    double sign = (current_theta < theta) ? 1.0 : -1.0;
-    double xi = x - y * sign / (double)t;
-    double yi = y + x * sign / (double)t;
-    current_theta += sign * tan_table[i];
+    sign = (v.theta < target) ? 1.0 : -1.0;
+    xi = v.x - v.y * sign / (double)t;
+    yi = v.y + v.x * sign / (double)t;
+    v.theta += sign * atan_table[i];
     t *= 2;
-    x = xi;
-    y = yi;
-    // printf("sign = %f, x = %f, y = %f\r\n", sign, x, y);
+    v.x = xi;
+    v.y = yi;
+    printf("sign = %f, x = %f, y = %f, theta = %f\r\n", sign, v.x, v.y,
+           v.theta);
   }
-  return std::make_pair(x, y);
+  return v;
 }
 
-/**
- * @brief
- *
- * @param x0
- * @param y0 0 <= theta <= 2 / pi
- * @return std::pair<double, double> first = theta, second = scalar
- */
-std::pair<double, double> calculateCordic2(const double x0, const double y0) {
-  double theta = 0;
-  double x = x0;
-  double y = y0;
+Vector calculateCordic2(const Vector v0) {
+  double sign, xi, yi;
+  Vector v = v0;
   long long t = 1;
-  for (int i = 0; i < n; i++) {
-    double sign = (y < 0) ? 1.0 : -1.0;
-    double xi = x - y * sign / (double)t;
-    double yi = y + x * sign / (double)t;
-    theta += -sign * tan_table[i];
+  for (int i = 1; i < n; i++) {
+    sign = (v.y < 0) ? 1.0 : -1.0;
+    xi = v.x - v.y * sign / (double)t;
+    yi = v.y + v.x * sign / (double)t;
+    v.theta += -sign * atan_table[i];
     t *= 2;
-    x = xi;
-    y = yi;
-    printf("sign = %f, x = %f, y = %f, theta = %f\r\n", sign, x, y, theta);
+    v.x = xi;
+    v.y = yi;
+    printf("sign = %f, x = %f, y = %f, theta = %f\r\n", sign, v.x, v.y,
+           v.theta);
   }
-  double scalar = x * m;
-  return std::make_pair(theta, scalar);
+  return v;
 }
 
 /**
@@ -104,8 +94,9 @@ double cordicSin(double theta) {
     sign = -1.0;
   }
   // cordic
-  auto ret = calculateCordic1(1.0, 1.0, theta);
-  return sign * m * ret.second;
+  Vector v{.x = 1.0, .y = 1.0, .theta = M_PI / 4};
+  auto ret = calculateCordic1(v, theta);
+  return sign * m * ret.y;
 }
 
 /**
@@ -133,8 +124,10 @@ double cordicCos(double theta) {
   } else if (theta > 1.5 * M_PI && theta <= 2.0 * M_PI) {
     theta = 2.0 * M_PI - theta;
   }
-  auto ret = calculateCordic1(1.0, 1.0, theta);
-  return sign * m * ret.first;
+  // cordic
+  Vector v{.x = 1.0, .y = 1.0, .theta = M_PI / 4};
+  auto ret = calculateCordic1(v, theta);
+  return sign * m * ret.x;
 }
 
 /**
@@ -146,15 +139,16 @@ double cordicCos(double theta) {
 double cordicTan(double theta) { return cordicSin(theta) / cordicCos(theta); }
 
 double cordicAtan(double t) {
-  auto ret = calculateCordic2(1, t);
-  return ret.first;
+  Vector v{.x = 1.0, .y = t, .theta = 0.0};
+  auto ret = calculateCordic2(v);
+  return ret.theta;
 }
 
 int main(void) {
-  n = 30;
+  n = 18;
   generateTable();
   printf("n = %d\r\n", n);
-#if 0
+#if 1
   for (int i = 0; i <= 360; i += 10) {
     double cpp_cos = cos(degToRad(i));
     double cordic_cos = cordicCos(degToRad(i));
@@ -164,7 +158,7 @@ int main(void) {
         i, cpp_cos, cordic_cos);
   }
 #endif
-#if 1
+#if 0
   for (double i = 0; i <= 2; i += 0.1) {
     double cpp_atan = atan(i);
     double cordic_atan = cordicAtan(i);
