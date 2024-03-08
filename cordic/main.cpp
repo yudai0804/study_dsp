@@ -6,7 +6,8 @@
 
 // 単位はrad
 std::vector<double> tan_table;
-// 参考サイトではn=18
+// 参考サイトではn=18 実際にやってみた感じ、n=18で有効数字5~6桁くらい出た。
+// ちなみにn=100とかにすると2^i乗が計算できなくなって死ぬので注意
 int n;
 double m = 1;
 
@@ -14,11 +15,11 @@ double degToRad(double deg) { return deg / 180.0 * M_PI; }
 double radToDeg(double rad) { return rad * 180.0 / M_PI; }
 
 void generateTable() {
-  int j = 1;
+  long long j = 1;
   for (int i = 0; i < n; i++) {
     tan_table.push_back(atan(1.0 / (double)j));
     m *= cos(tan_table[i]);
-    // printf("tan_table[%d] = %f, m = %f\r\n", tan_table[i], m);
+    printf("tan_table[%d] = %f, m = %f\r\n", tan_table[i], m);
     j *= 2;
   }
 }
@@ -35,13 +36,13 @@ std::pair<double, double> calculateCordic(const double x0, const double y0,
   double current_theta = atan(y0 / x0);
   double x = x0;
   double y = y0;
-  double t = 2.0;
+  long long t = 2;
   for (int i = 1; i < n; i++) {
     double sign = (current_theta < theta) ? 1.0 : -1.0;
-    double xi = x - y * sign / t;
-    double yi = y + x * sign / t;
+    double xi = x - y * sign / (double)t;
+    double yi = y + x * sign / (double)t;
     current_theta += sign * tan_table[i];
-    t *= 2.0;
+    t *= 2;
     x = xi;
     y = yi;
     // printf("sign = %f, x = %f, y = %f\r\n", sign, x, y);
@@ -51,13 +52,34 @@ std::pair<double, double> calculateCordic(const double x0, const double y0,
 
 /**
  * @brief sin
+ * @note cordic自体はthetaが0 <= theta <= 2 / piしか対応していない
+ * そのため、範囲外の値が来た場合は、三角関数の対称性を利用して計算する
  *
  * @param theta 0 <= theta <= 2 / pi
  * @return double
  */
 double cordicSin(double theta) {
+  double sign = 1;
+  // 0 ~ 2PI以外だった場合は、0~2PIにする
+  while (theta > 2.0 * M_PI) {
+    theta -= 2.0 * M_PI;
+  }
+  while (theta < 0.0) {
+    theta += 2.0 * M_PI;
+  }
+  // 三角関数の対称性を利用して、他の象限でも計算可能にする
+  if (theta > 0.5 * M_PI && theta <= M_PI) {
+    theta = M_PI - theta;
+  } else if (theta > M_PI && theta <= 1.5 * M_PI) {
+    theta = theta - M_PI;
+    sign = -1.0;
+  } else if (theta > 1.5 * M_PI && theta <= 2.0 * M_PI) {
+    theta = 2.0 * M_PI - theta;
+    sign = -1.0;
+  }
+  // cordic
   auto ret = calculateCordic(1.0, 1.0, theta);
-  return m * ret.second;
+  return sign * m * ret.second;
 }
 
 /**
@@ -67,8 +89,26 @@ double cordicSin(double theta) {
  * @return double
  */
 double cordicCos(double theta) {
+  double sign = 1;
+  // 0 ~ 2PI以外だった場合は、0~2PIにする
+  while (theta > 2.0 * M_PI) {
+    theta -= 2.0 * M_PI;
+  }
+  while (theta < 0.0) {
+    theta += 2.0 * M_PI;
+  }
+  // 三角関数の対称性を利用して、他の象限でも計算可能にする
+  if (theta > 0.5 * M_PI && theta <= M_PI) {
+    theta = M_PI - theta;
+    sign = -1.0;
+  } else if (theta > M_PI && theta <= 1.5 * M_PI) {
+    theta = theta - M_PI;
+    sign = -1.0;
+  } else if (theta > 1.5 * M_PI && theta <= 2.0 * M_PI) {
+    theta = 2.0 * M_PI - theta;
+  }
   auto ret = calculateCordic(1.0, 1.0, theta);
-  return m * ret.first;
+  return sign * m * ret.first;
 }
 
 /**
@@ -83,7 +123,7 @@ int main(void) {
   n = 18;
   generateTable();
   printf("n = %d\r\n", n);
-  for (int i = 0; i <= 90; i += 10) {
+  for (int i = 0; i <= 360; i += 10) {
     double cpp_cos = cos(degToRad(i));
     double cordic_cos = cordicCos(degToRad(i));
     printf(
