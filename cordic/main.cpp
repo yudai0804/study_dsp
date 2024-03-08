@@ -29,10 +29,10 @@ void generateTable() {
  * @param x0
  * @param y0
  * @param theta 0 <= theta <= 2 / pi
- * @return std::pair<double, double>
+ * @return std::pair<double, double> first = x,second = y
  */
-std::pair<double, double> calculateCordic(const double x0, const double y0,
-                                          const double theta) {
+std::pair<double, double> calculateCordic1(const double x0, const double y0,
+                                           const double theta) {
   double current_theta = atan(y0 / x0);
   double x = x0;
   double y = y0;
@@ -48,6 +48,32 @@ std::pair<double, double> calculateCordic(const double x0, const double y0,
     // printf("sign = %f, x = %f, y = %f\r\n", sign, x, y);
   }
   return std::make_pair(x, y);
+}
+
+/**
+ * @brief
+ *
+ * @param x0
+ * @param y0 0 <= theta <= 2 / pi
+ * @return std::pair<double, double> first = theta, second = scalar
+ */
+std::pair<double, double> calculateCordic2(const double x0, const double y0) {
+  double theta = 0;
+  double x = x0;
+  double y = y0;
+  long long t = 1;
+  for (int i = 0; i < n; i++) {
+    double sign = (y < 0) ? 1.0 : -1.0;
+    double xi = x - y * sign / (double)t;
+    double yi = y + x * sign / (double)t;
+    theta += -sign * tan_table[i];
+    t *= 2;
+    x = xi;
+    y = yi;
+    printf("sign = %f, x = %f, y = %f, theta = %f\r\n", sign, x, y, theta);
+  }
+  double scalar = x * m;
+  return std::make_pair(theta, scalar);
 }
 
 /**
@@ -78,7 +104,7 @@ double cordicSin(double theta) {
     sign = -1.0;
   }
   // cordic
-  auto ret = calculateCordic(1.0, 1.0, theta);
+  auto ret = calculateCordic1(1.0, 1.0, theta);
   return sign * m * ret.second;
 }
 
@@ -107,7 +133,7 @@ double cordicCos(double theta) {
   } else if (theta > 1.5 * M_PI && theta <= 2.0 * M_PI) {
     theta = 2.0 * M_PI - theta;
   }
-  auto ret = calculateCordic(1.0, 1.0, theta);
+  auto ret = calculateCordic1(1.0, 1.0, theta);
   return sign * m * ret.first;
 }
 
@@ -119,10 +145,16 @@ double cordicCos(double theta) {
  */
 double cordicTan(double theta) { return cordicSin(theta) / cordicCos(theta); }
 
+double cordicAtan(double t) {
+  auto ret = calculateCordic2(1, t);
+  return ret.first;
+}
+
 int main(void) {
-  n = 18;
+  n = 30;
   generateTable();
   printf("n = %d\r\n", n);
+#if 0
   for (int i = 0; i <= 360; i += 10) {
     double cpp_cos = cos(degToRad(i));
     double cordic_cos = cordicCos(degToRad(i));
@@ -131,4 +163,15 @@ int main(void) {
         "%.15f\r\n",
         i, cpp_cos, cordic_cos);
   }
+#endif
+#if 1
+  for (double i = 0; i <= 2; i += 0.1) {
+    double cpp_atan = atan(i);
+    double cordic_atan = cordicAtan(i);
+    printf(
+        "=======\r\ntan = %f\r\ncpp_atan    = %.15f\r\ncordic_atan = "
+        "%.15f\r\n",
+        i, cpp_atan, cordic_atan);
+  }
+#endif
 }
