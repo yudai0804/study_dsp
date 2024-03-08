@@ -48,12 +48,12 @@ Vector calculateCordic1(const Vector v0, double target) {
   return v;
 }
 
-Vector calculateCordic2(const Vector v0) {
+Vector calculateCordic2(const Vector v0, double target) {
   double sign, xi, yi;
   Vector v = v0;
   long long t = 1;
   for (int i = 0; i < n; i++) {
-    sign = (v.y < 0) ? 1.0 : -1.0;
+    sign = (v.y < target) ? 1.0 : -1.0;
     xi = v.x - v.y * sign / (double)t;
     yi = v.y + v.x * sign / (double)t;
     v.theta += -sign * atan_table[i];
@@ -140,9 +140,22 @@ double cordicTan(double theta) { return cordicSin(theta) / cordicCos(theta); }
 
 double cordicAtan(double t) {
   Vector v{.x = 1.0, .y = t, .theta = 0.0};
-  auto ret = calculateCordic2(v);
+  auto ret = calculateCordic2(v, 0.0);
   return ret.theta;
 }
+
+double cordicAsin(double t) {
+  double sign = -1.0;
+  if (t < 0) {
+    t = -t;
+    sign = 1;
+  }
+  Vector v{.x = m, .y = 0, .theta = 0.0};
+  auto ret = calculateCordic2(v, t);
+  return sign * ret.theta;
+}
+// TODO: acosうまく動かない
+double cordicAcos(double t) {}
 
 int main(void) {
   n = 18;
@@ -159,7 +172,7 @@ int main(void) {
   }
 #endif
 #if 1
-  for (double i = 0; i <= 2; i += 0.1) {
+  for (double i = 0; i <= 1; i += 0.1) {
     double cpp_atan = atan(i);
     double cordic_atan = cordicAtan(i);
     printf(
