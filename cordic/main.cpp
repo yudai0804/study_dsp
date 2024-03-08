@@ -52,7 +52,7 @@ Vector calculateCordic2(const Vector v0) {
   double sign, xi, yi;
   Vector v = v0;
   long long t = 1;
-  for (int i = 1; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     sign = (v.y < 0) ? 1.0 : -1.0;
     xi = v.x - v.y * sign / (double)t;
     yi = v.y + v.x * sign / (double)t;
@@ -148,7 +148,7 @@ int main(void) {
   n = 18;
   generateTable();
   printf("n = %d\r\n", n);
-#if 1
+#if 0
   for (int i = 0; i <= 360; i += 10) {
     double cpp_cos = cos(degToRad(i));
     double cordic_cos = cordicCos(degToRad(i));
@@ -158,7 +158,7 @@ int main(void) {
         i, cpp_cos, cordic_cos);
   }
 #endif
-#if 0
+#if 1
   for (double i = 0; i <= 2; i += 0.1) {
     double cpp_atan = atan(i);
     double cordic_atan = cordicAtan(i);
