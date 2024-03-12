@@ -1,111 +1,110 @@
 #include <stdio.h>
 
 #include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <functional>
 #include <iostream>
 #include <vector>
 
 #include "cordic.h"
 
+std::string data_directory = "data";
 std::string file_name;
-std::vector<std::string> function_name;
-std::vector<double> start;
-std::vector<double> end;
-std::vector<double> dx;
+int cordic_n = 18;
+std::string function_name;
+// start=endのときはstartの値だけ計算して返す
+double start;
+double end;
+double dx;
+std::vector<double> x;
 std::vector<double> output;
 
-int cordic_n = 18;
-int main(int argc, char **argv) {
-  printf("program start\r\n");
-  cordic::init(cordic_n);
-  printf("%f\r\n", cordic::cos(0));
-  return 0;
+void calc(std::function<double(double)> func) {
+  if (start == end) {
+    x.push_back(start);
+    output.push_back(func(start));
+    return;
+  }
+  for (double i = start; i < end; i += dx) {
+    x.push_back(i);
+    output.push_back(func(i));
+  }
 }
+// 引数
+// ./main file_name cordic_n function_name start end dx ...
+int main(int argc, char **argv) {
+  if (argc != 7) {
+    printf("argument error\r\n");
+    return 1;
+  }
+  // 変数の初期値を代入
+  file_name = std::string(argv[1]);
+  cordic_n = atoi(argv[2]);
+  if (cordic_n == 0) {
+    printf("argument error\r\n");
+    return 1;
+  }
+  function_name = std::string(argv[3]);
+  start = atof(argv[4]);
+  end = atof(argv[5]);
+  dx = atof(argv[6]);
 
-void test() {
-  //  printf("n = %d, m = %f, mh = %f\r\n", n, m, mh);
-#if 0
-  for (int i = -90; i <= 90; i += 10) {
-    double cpp_cos = cos(degToRad(i));
-    double cordic_cos = cordicCos(degToRad(i));
-    printf(
-        "=======\r\ntheta = %d\r\ncpp_cos    = %.15f\r\ncordic_cos = "
-        "%.15f\r\n",
-        i, cpp_cos, cordic_cos);
+  cordic::init(cordic_n);
+
+  std::string &fn = function_name;
+  std::function<double(double)> f;
+  // clang-format off
+  if (fn == "sin") f = [](double a) { return std::sin(a); };
+  else if (fn == "cos") f = [](double a) { return std::cos(a); };
+  else if (fn == "tan") f = [](double a) { return std::tan(a); };
+  else if (fn == "asin") f = [](double a) { return std::asin(a); };
+  else if (fn == "acos") f = [](double a) { return std::acos(a); };
+  else if (fn == "atan") f = [](double a) { return std::atan(a); };
+  else if (fn == "sinh") f = [](double a) { return std::sinh(a); };
+  else if (fn == "cosh") f = [](double a) { return std::cosh(a); };
+  else if (fn == "tanh") f = [](double a) { return std::tanh(a); };
+  else if (fn == "asinh") f = [](double a) { return std::asinh(a); };
+  else if (fn == "acosh") f = [](double a) { return std::acosh(a); };
+  else if (fn == "atanh") f = [](double a) { return std::atanh(a); };
+  else if (fn == "log") f = [](double a) { return std::log(a); };
+  else if (fn == "exp") f = [](double a) { return std::exp(a); };
+  else if (fn == "sqrt") f = [](double a) { return std::sqrt(a); };
+  else if (fn == "cordic_sin") f = [](double a) { return cordic::sin(a); };
+  else if (fn == "cordic_cos") f = [](double a) { return cordic::cos(a); };
+  else if (fn == "cordic_tan") f = [](double a) { return cordic::tan(a); };
+  else if (fn == "cordic_asin") f = [](double a) { return cordic::asin(a); };
+  else if (fn == "cordic_acos") f = [](double a) { return cordic::acos(a); };
+  else if (fn == "cordic_atan") f = [](double a) { return cordic::atan(a); };
+  else if (fn == "cordic_sinh") f = [](double a) { return cordic::sinh(a); };
+  else if (fn == "cordic_cosh") f = [](double a) { return cordic::cosh(a); };
+  else if (fn == "cordic_tanh") f = [](double a) { return cordic::tanh(a); };
+  else if (fn == "cordic_asinh") f = [](double a) { return cordic::asinh(a); };
+  else if (fn == "cordic_acosh") f = [](double a) { return cordic::acosh(a); };
+  else if (fn == "cordic_atanh") f = [](double a) { return cordic::atanh(a); };
+  else if (fn == "cordic_log") f = [](double a) { return cordic::log(a); };
+  else if (fn == "cordic_exp") f = [](double a) { return cordic::exp(a); };
+  else if (fn == "cordic_sqrt") f = [](double a) { return cordic::sqrt(a); };
+  // clang-format on
+  else {
+    printf("argument error\r\n");
+    return 1;
   }
-#endif
-#if 0
-  for (double i = -1; i <= 1; i += 0.1) {
-    printf("a = %f ", i);
-    double cpp_asin = asin(i);
-    double cordic_asin = cordicAsin(i);
-    double cpp_acos = acos(i);
-    double cordic_acos = cordicAcos(i);
-    printf("%f %f %f %f\r\n", cpp_asin, cordic_asin, cpp_acos, cordic_acos);
+  // 計算
+  calc(f);
+  // ファイルにcsv形式で書き出す
+  bool is_dir = std::filesystem::is_directory(data_directory);
+  if (!is_dir) std::filesystem::create_directory(data_directory);
+  std::ofstream ofs(file_name);
+  if (!ofs) {
+    printf("open file failed\r\n");
+    return 1;
   }
-#endif
-#if 0
-  for (double i = -2.0; i <= 1.5; i += 0.01) {
-    double cpp_cosh = cosh(i);
-    double cordic_cosh = cordicCosh(i);
-    printf(
-        "theta = %f\r\ncpp_cosh    = %.15f\r\ncordic_cosh = "
-        "%.15f\r\n\r\n",
-        i, cpp_cosh, cordic_cosh);
+  ofs << "x,y" << std::endl;
+  for (int i = 0; i < x.size(); i++) {
+    char c[64];
+    sprintf(c, "%.16f,%.16f", x[i], output[i]);
+    ofs << c << std::endl;
   }
-#endif
-#if 0
-  for (double i = -1; i <= 1; i += 0.01) {
-    printf("tan = %f\r\n", i);
-    double cpp_atanh = atanh(i);
-    double cordic_atanh = cordicAtanh(i);
-    printf(
-        "cpp_atanh    = %.15f\r\ncordic_atanh = "
-        "%.15f\r\n\r\n",
-        cpp_atanh, cordic_atanh);
-  }
-#endif
-#if 0
-  for (double i = -1; i <= 1; i += 0.1) {
-    printf("a = %f ", i);
-    double cpp_asin = asin(i);
-    double cordic_asin = cordicAsin(i);
-    double cpp_acos = acos(i);
-    double cordic_acos = cordicAcos(i);
-    printf("%f %f %f %f\r\n", cpp_asin, cordic_asin, cpp_acos, cordic_acos);
-  }
-#endif
-#if 0
-  for (double i = 1.0; i <= 10; i += 0.01) {
-    printf("log %f ", i);
-    double a = log(i);
-    double b = cordicLog(i);
-    printf("%f %f\r\n", a, b);
-  }
-#endif
-#if 0
-  for (double i = -1.3; i <= 1.3; i += 0.1) {
-    printf("exp %f ", i);
-    double a = exp(i);
-    double b = cordicExp(i);
-    printf("%f %f\r\n", a, b);
-  }
-#endif
-#if 0
-  for (double i = 0; i < 2; i += 0.1) {
-    for (double j = -2.5; j < 0; j += 0.1) {
-      printf("pow(%f, %f) %f %f\r\n", i, j, pow(i, j), cordicPow(i, j));
-    }
-  }
-#endif
-#if 0
-  for (double i = 0; i < 4; i += 0.1) {
-    printf("sqrt(%f), %f, %f\r\n", i, sqrt(i), cordicSqrt(i));
-  }
-#endif
-#if 0
-  for (double i = 0; i < 4; i += 0.1) {
-    printf("i=%f | %f %f | %f %f\r\n", i, acosh(i), cordicAcosh(i), asinh(i),
-           cordicAsinh(i));
-  }
-#endif
+  return 0;
 }
