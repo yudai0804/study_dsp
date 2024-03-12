@@ -53,12 +53,12 @@ struct Vector {
   double theta;
 };
 
-Vector calculateCordic1(const Vector v0, double target) {
+Vector calculateCordic1(const Vector v0, double a) {
   double sign, xi, yi;
   Vector v = v0;
   long long t = 1;
   for (int i = 0; i < n; i++) {
-    sign = (v.theta < target) ? 1.0 : -1.0;
+    sign = (v.theta < a) ? 1.0 : -1.0;
     xi = v.x - v.y * sign / (double)t;
     yi = v.y + v.x * sign / (double)t;
     v.theta += sign * atan_table[i];
@@ -71,12 +71,12 @@ Vector calculateCordic1(const Vector v0, double target) {
   return v;
 }
 
-Vector calculateCordic2(const Vector v0, double target) {
+Vector calculateCordic2(const Vector v0, double a) {
   double sign, xi, yi;
   Vector v = v0;
   long long t = 1;
   for (int i = 0; i < n; i++) {
-    sign = (v.y < target) ? 1.0 : -1.0;
+    sign = (v.y < a) ? 1.0 : -1.0;
     xi = v.x - v.y * sign / (double)t;
     yi = v.y + v.x * sign / (double)t;
     v.theta += -sign * atan_table[i];
@@ -152,102 +152,66 @@ Vector calculateCordic4(const Vector v0, double a) {
 
 /**
  * @brief sin
- * @note cordic自体はthetaが0 <= theta <= 2 / piしか対応していない
- * そのため、範囲外の値が来た場合は、三角関数の対称性を利用して計算する
  *
- * @param theta 0 <= theta <= 2 / pi
+ * @param a -pi/2 <= a <= pi/2
  * @return double
  */
-double cordicSin(double theta) {
-  double sign = 1;
-  // 0 ~ 2PI以外だった場合は、0~2PIにする
-  while (theta > 2.0 * M_PI) {
-    theta -= 2.0 * M_PI;
-  }
-  while (theta < 0.0) {
-    theta += 2.0 * M_PI;
-  }
-  // 三角関数の対称性を利用して、他の象限でも計算可能にする
-  if (theta > 0.5 * M_PI && theta <= M_PI) {
-    theta = M_PI - theta;
-  } else if (theta > M_PI && theta <= 1.5 * M_PI) {
-    theta = theta - M_PI;
-    sign = -1.0;
-  } else if (theta > 1.5 * M_PI && theta <= 2.0 * M_PI) {
-    theta = 2.0 * M_PI - theta;
-    sign = -1.0;
-  }
-  // cordic
+double cordicSin(double a) {
   Vector v{.x = m, .y = 0, .theta = 0};
-  auto ret = calculateCordic1(v, theta);
-  return sign * ret.y;
+  auto ret = calculateCordic1(v, a);
+  return ret.y;
 }
 
 /**
  * @brief cos
  *
- * @param theta 0 <= theta <= 2 / pi
+ * @param a -pi/2 <= a <= pi/2
  * @return double
  */
-double cordicCos(double theta) {
-  double sign = 1;
-  // 0 ~ 2PI以外だった場合は、0~2PIにする
-  while (theta > 2.0 * M_PI) {
-    theta -= 2.0 * M_PI;
-  }
-  while (theta < 0.0) {
-    theta += 2.0 * M_PI;
-  }
-  // 三角関数の対称性を利用して、他の象限でも計算可能にする
-  if (theta > 0.5 * M_PI && theta <= M_PI) {
-    theta = M_PI - theta;
-    sign = -1.0;
-  } else if (theta > M_PI && theta <= 1.5 * M_PI) {
-    theta = theta - M_PI;
-    sign = -1.0;
-  } else if (theta > 1.5 * M_PI && theta <= 2.0 * M_PI) {
-    theta = 2.0 * M_PI - theta;
-  }
-  // cordic
+double cordicCos(double a) {
   Vector v{.x = m, .y = 0, .theta = 0};
-  auto ret = calculateCordic1(v, theta);
-  return sign * ret.x;
+  auto ret = calculateCordic1(v, a);
+  return ret.x;
 }
 
 /**
  * @brief tan
  *
- * @param theta 0 <= theta <= 2 / pi
+ * @param a -pi/2 <= a <= pi/2
+ * @noet |pi/2|に値が近づくと精度が落ちる(発散する)ので注意
  * @return double
  */
-double cordicTan(double theta) { return cordicSin(theta) / cordicCos(theta); }
+double cordicTan(double a) {
+  Vector v{.x = m, .y = 0, .theta = 0};
+  auto ret = calculateCordic1(v, a);
+  return ret.y / ret.x;
+}
 
-double cordicAtan(double t) {
-  Vector v{.x = 1.0, .y = t, .theta = 0.0};
+double cordicAtan(double a) {
+  Vector v{.x = 1.0, .y = a, .theta = 0.0};
   auto ret = calculateCordic2(v, 0.0);
   return ret.theta;
 }
 
 /**
  * @brief
- * @note このアルゴリズムだと、|target| < 0.98の範囲でしか正確に計算できなかった
- * @param target
+ * @note このアルゴリズムだと、|a| < 0.98の範囲でしか正確に計算できなかった
+ * @param a
  * @return double
  */
-double cordicAsin(double target) {
-  double _sign = 1.0;
+double cordicAsin(double a) {
   Vector v{.x = m, .y = 0, .theta = 0.0};
-  auto ret = calculateCordic2(v, -target);
+  auto ret = calculateCordic2(v, -a);
   return ret.theta;
 }
 
 /**
  * @brief
- * @note このアルゴリズムだと、|target| < 0.98の範囲でしか正確に計算できなかった
- * @param target
+ * @note このアルゴリズムだと、|a| < 0.98の範囲でしか正確に計算できなかった
+ * @param a
  * @return double
  */
-double cordicAcos(double target) { return M_PI / 2 - cordicAsin(target); }
+double cordicAcos(double a) { return M_PI / 2 - cordicAsin(a); }
 /**
  * @brief |a| < 1.13くらい
  *
@@ -274,7 +238,11 @@ double cordicCosh(double a) {
   return ret.x;
 }
 
-double cordicTanh(double a) { return cordicSinh(a) / cordicCosh(a); }
+double cordicTanh(double a) {
+  Vector v{.x = mh, .y = 0, .theta = 0};
+  auto ret = calculateCordic3(v, a);
+  return ret.y / ret.x;
+}
 
 /**
  * @brief |a| < 0.81
@@ -321,10 +289,10 @@ int main(void) {
   generateAtanhTable();
   calculateHypoblicGain();
   printf("n = %d, m = %f, mh = %f\r\n", n, m, mh);
-#if 0
-  for (int i = 0; i <= 360; i += 10) {
-    double cpp_cos = cos(degToRad(i));
-    double cordic_cos = cordicCos(degToRad(i));
+#if 1
+  for (int i = -90; i <= 90; i += 10) {
+    double cpp_cos = tan(degToRad(i));
+    double cordic_cos = cordicTan(degToRad(i));
     printf(
         "=======\r\ntheta = %d\r\ncpp_cos    = %.15f\r\ncordic_cos = "
         "%.15f\r\n",
@@ -388,7 +356,7 @@ int main(void) {
     printf("%f %f\r\n", a, b);
   }
 #endif
-#if 1
+#if 0
   for (double i = 0; i < 2; i += 0.1) {
     for (double j = -2.5; j < 0; j += 0.1) {
       printf("pow(%f, %f) %f %f\r\n", i, j, pow(i, j), cordicPow(i, j));
