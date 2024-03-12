@@ -100,7 +100,6 @@ int main(int argc, char **argv) {
     printf("open file failed\r\n");
     return 1;
   }
-  ofs << "x,y" << std::endl;
   for (int i = 0; i < x.size(); i++) {
     char c[64];
     sprintf(c, "%.16f,%.16f", x[i], output[i]);

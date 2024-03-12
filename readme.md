@@ -1,5 +1,15 @@
 # デジタル信号処理(DSP)勉強用リポジトリ
 
+# pipメモ
+現在インストールされているものを書き出す  
+```
+pip freeze > requirements.txt
+```
+requirements.txtに書かれているものをインストール
+```
+pip install -r requirements.txt
+```
+
 # cmakeメモ
 cmakeを使ってMakefileを生成
 ```
