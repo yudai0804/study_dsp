@@ -4,6 +4,9 @@
 #include <iostream>
 #include <vector>
 
+#define CIRCULAR_MODE 0
+#define VECTOR_MODE 1
+
 // 単位はrad
 std::vector<double> atan_table;
 std::vector<double> atanh_table;
@@ -53,91 +56,49 @@ struct Vector {
   double theta;
 };
 
-Vector calculateCordic1(const Vector v0, double a) {
+Vector calculateCircularCordic(const Vector v0, double a, int mode) {
   double sign, xi, yi;
   Vector v = v0;
   long long t = 1;
   for (int i = 0; i < n; i++) {
-    sign = (v.theta < a) ? 1.0 : -1.0;
-    xi = v.x - v.y * sign / (double)t;
-    yi = v.y + v.x * sign / (double)t;
-    v.theta += sign * atan_table[i];
-    t *= 2;
-    v.x = xi;
-    v.y = yi;
-    // printf("sign = %f, x = %f, y = %f, theta = %f\r\n", sign, v.x, v.y,
-    //  v.theta);
-  }
-  return v;
-}
-
-Vector calculateCordic2(const Vector v0, double a) {
-  double sign, xi, yi;
-  Vector v = v0;
-  long long t = 1;
-  for (int i = 0; i < n; i++) {
-    sign = (v.y < a) ? 1.0 : -1.0;
-    xi = v.x - v.y * sign / (double)t;
-    yi = v.y + v.x * sign / (double)t;
-    v.theta += -sign * atan_table[i];
-    t *= 2;
-    v.x = xi;
-    v.y = yi;
-    // printf("sign = %f, x = %f, y = %f, theta = %f\r\n", sign, v.x, v.y,
-    //  v.theta);
-  }
-  return v;
-}
-
-Vector calculateCordic3(const Vector v0, double a) {
-  double sign, xi, yi;
-  Vector v = v0;
-  long long t = 2;
-  int k = 3;
-  for (int i = 0; i < n; i++) {
-    for (int j = 0; j < 2; j++) {
-      sign = (v.theta < a) ? 1.0 : -1.0;
-      xi = v.x + v.y * sign / (double)t;
-      yi = v.y + v.x * sign / (double)t;
-      v.theta += sign * atanh_table[i];
-      v.x = xi;
-      v.y = yi;
-      // printf("sign = %f, x = %f, y = %f, theta = %f\r\n", sign, v.x, v.y,
-      //  v.theta);
-      if (k) {
-        k--;
-        break;
-      } else {
-        k = 3;
-      }
-    }
-    t *= 2;
-  }
-  return v;
-}
-
-void calculateHypoblicGain() {
-  Vector v{.x = 1, .y = 0, .theta = 0};
-  auto ret = calculateCordic3(v, 0);
-  printf("gain = %f\r\n", 1.0 / ret.x);
-  mh = 1 / ret.x;
-}
-
-Vector calculateCordic4(const Vector v0, double a) {
-  double sign, xi, yi;
-  Vector v = v0;
-  long long t = 2;
-  int k = 3;
-  for (int i = 0; i < n; i++) {
-    for (int j = 0; j < 2; j++) {
+    if (mode) {
       sign = (v.y < a) ? 1.0 : -1.0;
-      xi = v.x + v.y * sign / (double)t;
+      xi = v.x - v.y * sign / (double)t;
       yi = v.y + v.x * sign / (double)t;
-      v.theta += sign * atanh_table[i];
+      v.theta += -sign * atan_table[i];
+    } else {
+      sign = (v.theta < a) ? 1.0 : -1.0;
+      xi = v.x - v.y * sign / (double)t;
+      yi = v.y + v.x * sign / (double)t;
+      v.theta += sign * atan_table[i];
+    }
+    t *= 2;
+    v.x = xi;
+    v.y = yi;
+  }
+  return v;
+}
+
+Vector calculateHyperbolicCordic(const Vector v0, double a, int mode) {
+  double sign, xi, yi;
+  Vector v = v0;
+  long long t = 2;
+  int k = 3;
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < 2; j++) {
+      if (mode) {
+        sign = (v.y < a) ? 1.0 : -1.0;
+        xi = v.x + v.y * sign / (double)t;
+        yi = v.y + v.x * sign / (double)t;
+        v.theta += sign * atanh_table[i];
+      } else {
+        sign = (v.theta < a) ? 1.0 : -1.0;
+        xi = v.x + v.y * sign / (double)t;
+        yi = v.y + v.x * sign / (double)t;
+        v.theta += sign * atanh_table[i];
+      }
       v.x = xi;
       v.y = yi;
-      // printf("sign = %f, x = %f, y = %f, theta = %f\r\n", sign, v.x, v.y,
-      //  v.theta);
       if (k) {
         k--;
         break;
@@ -148,6 +109,12 @@ Vector calculateCordic4(const Vector v0, double a) {
     t *= 2;
   }
   return v;
+}
+
+void calculateHyerbolicGain() {
+  Vector v{.x = 1, .y = 0, .theta = 0};
+  auto ret = calculateHyperbolicCordic(v, 0, CIRCULAR_MODE);
+  mh = 1 / ret.x;
 }
 
 /**
@@ -158,7 +125,7 @@ Vector calculateCordic4(const Vector v0, double a) {
  */
 double cordicSin(double a) {
   Vector v{.x = m, .y = 0, .theta = 0};
-  auto ret = calculateCordic1(v, a);
+  auto ret = calculateCircularCordic(v, a, CIRCULAR_MODE);
   return ret.y;
 }
 
@@ -170,7 +137,7 @@ double cordicSin(double a) {
  */
 double cordicCos(double a) {
   Vector v{.x = m, .y = 0, .theta = 0};
-  auto ret = calculateCordic1(v, a);
+  auto ret = calculateCircularCordic(v, a, CIRCULAR_MODE);
   return ret.x;
 }
 
@@ -183,13 +150,13 @@ double cordicCos(double a) {
  */
 double cordicTan(double a) {
   Vector v{.x = m, .y = 0, .theta = 0};
-  auto ret = calculateCordic1(v, a);
+  auto ret = calculateCircularCordic(v, a, CIRCULAR_MODE);
   return ret.y / ret.x;
 }
 
 double cordicAtan(double a) {
   Vector v{.x = 1.0, .y = a, .theta = 0.0};
-  auto ret = calculateCordic2(v, 0.0);
+  auto ret = calculateCircularCordic(v, 0.0, VECTOR_MODE);
   return ret.theta;
 }
 
@@ -201,7 +168,7 @@ double cordicAtan(double a) {
  */
 double cordicAsin(double a) {
   Vector v{.x = m, .y = 0, .theta = 0.0};
-  auto ret = calculateCordic2(v, -a);
+  auto ret = calculateCircularCordic(v, -a, VECTOR_MODE);
   return ret.theta;
 }
 
@@ -221,7 +188,7 @@ double cordicAcos(double a) { return M_PI / 2 - cordicAsin(a); }
 double cordicSinh(double a) {
   // cordic
   Vector v{.x = mh, .y = 0, .theta = 0};
-  auto ret = calculateCordic3(v, a);
+  auto ret = calculateHyperbolicCordic(v, a, CIRCULAR_MODE);
   return ret.y;
 }
 
@@ -234,13 +201,13 @@ double cordicSinh(double a) {
 double cordicCosh(double a) {
   // cordic
   Vector v{.x = mh, .y = 0, .theta = 0};
-  auto ret = calculateCordic3(v, a);
+  auto ret = calculateHyperbolicCordic(v, a, CIRCULAR_MODE);
   return ret.x;
 }
 
 double cordicTanh(double a) {
   Vector v{.x = mh, .y = 0, .theta = 0};
-  auto ret = calculateCordic3(v, a);
+  auto ret = calculateHyperbolicCordic(v, a, CIRCULAR_MODE);
   return ret.y / ret.x;
 }
 
@@ -252,7 +219,7 @@ double cordicTanh(double a) {
  */
 double cordicAtanh(double a) {
   Vector v{.x = 1.0, .y = -a, .theta = 0.0};
-  auto ret = calculateCordic4(v, 0.0);
+  auto ret = calculateHyperbolicCordic(v, 0.0, VECTOR_MODE);
   return ret.theta;
 }
 
@@ -270,8 +237,11 @@ double cordicLog(double a) { return 2 * cordicAtanh((a - 1) / (a + 1)); }
  * @param a
  * @return double
  */
-double cordicExp(double a) { return cordicCosh(a) + cordicSinh(a); }
-
+double cordicExp(double a) {
+  Vector v{.x = mh, .y = 0, .theta = 0};
+  auto ret = calculateHyperbolicCordic(v, a, CIRCULAR_MODE);
+  return ret.x + ret.y;
+}
 /**
  * @brief a^b
  * @note a^b = exp(b*log(a))
@@ -283,16 +253,49 @@ double cordicExp(double a) { return cordicCosh(a) + cordicSinh(a); }
  */
 double cordicPow(double a, double b) { return cordicExp(b * log(a)); }
 
-int main(void) {
-  n = 18;
+/**
+ * @brief 0.03 < a < 2.3
+ *
+ * @param a
+ * @return double
+ */
+double cordicSqrt(double a) {
+  Vector v{.x = a + 0.25, .y = a - 0.25, .theta = 0};
+  auto ret = calculateHyperbolicCordic(v, 0.0, VECTOR_MODE);
+  return ret.x * mh;
+}
+
+/**
+ * @brief
+ * @note 精度が悪かった
+ * @param a
+ * @return double
+ */
+double cordicAsinh(double a) { return cordicLog(a + cordicSqrt(a * a + 1)); }
+
+/**
+ * @brief
+ * @note 精度が悪かった
+ *
+ * @param a
+ * @return double
+ */
+double cordicAcosh(double a) { return cordicLog(a + cordicSqrt(a * a - 1)); }
+
+void init() {
   generateAtanTable();
   generateAtanhTable();
-  calculateHypoblicGain();
+  calculateHyerbolicGain();
+}
+
+int main(void) {
+  n = 18;
+  init();
   printf("n = %d, m = %f, mh = %f\r\n", n, m, mh);
-#if 1
+#if 0
   for (int i = -90; i <= 90; i += 10) {
-    double cpp_cos = tan(degToRad(i));
-    double cordic_cos = cordicTan(degToRad(i));
+    double cpp_cos = cos(degToRad(i));
+    double cordic_cos = cordicCos(degToRad(i));
     printf(
         "=======\r\ntheta = %d\r\ncpp_cos    = %.15f\r\ncordic_cos = "
         "%.15f\r\n",
@@ -362,6 +365,16 @@ int main(void) {
       printf("pow(%f, %f) %f %f\r\n", i, j, pow(i, j), cordicPow(i, j));
     }
   }
-
+#endif
+#if 0
+  for (double i = 0; i < 4; i += 0.1) {
+    printf("sqrt(%f), %f, %f\r\n", i, sqrt(i), cordicSqrt(i));
+  }
+#endif
+#if 0
+  for (double i = 0; i < 4; i += 0.1) {
+    printf("i=%f | %f %f | %f %f\r\n", i, acosh(i), cordicAcosh(i), asinh(i),
+           cordicAsinh(i));
+  }
 #endif
 }
