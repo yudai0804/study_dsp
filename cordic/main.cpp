@@ -26,9 +26,14 @@ void calc(std::function<double(double)> func) {
     output.push_back(func(start));
     return;
   }
-  for (double i = start; i < end; i += dx) {
-    x.push_back(i);
-    output.push_back(func(i));
+  int i;
+  if (start == end)
+    i = 0;
+  else
+    i = (end - start) / dx;
+  for (int j = 0; j < i + 1; j++) {
+    x.push_back(start + dx * j);
+    output.push_back(func(start + dx * j));
   }
 }
 // 引数
