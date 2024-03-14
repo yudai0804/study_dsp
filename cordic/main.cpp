@@ -9,6 +9,29 @@
 
 #include "cordic.h"
 
+double __attribute__((noinline)) fsin(double a) {
+  double r;
+  asm volatile(
+      "movsd %%xmm0, %0\n\t"  // 1.
+      "fldl %0\n\t"           // 2.
+      "fsin\n\t"              // 3.
+      "fstpl %1\n\t"          // 4.
+      : "=m"(a)
+      : "m"(r));
+  return r;
+}
+double __attribute__((noinline)) fcos(double a) {
+  double r;
+  asm volatile(
+      "movsd %%xmm0, %0\n\t"  // 1.
+      "fldl %0\n\t"           // 2.
+      "fcos\n\t"              // 3.
+      "fstpl %1\n\t"          // 4.
+      : "=m"(a)
+      : "m"(r));
+  return r;
+}
+
 std::string data_directory = "data";
 std::string file_name;
 int cordic_n = 18;
@@ -60,7 +83,9 @@ int main(int argc, char **argv) {
   std::string &fn = function_name;
   std::function<double(double)> f;
   // clang-format off
-  if (fn == "sin") f = [](double a) { return std::sin(a); };
+  if(fn == "fsin") f = [](double a) { return fsin(a); };
+  else if(fn == "fcos") f = [](double a) { return fcos(a); };
+  else if (fn == "sin") f = [](double a) { return std::sin(a); };
   else if (fn == "cos") f = [](double a) { return std::cos(a); };
   else if (fn == "tan") f = [](double a) { return std::tan(a); };
   else if (fn == "asin") f = [](double a) { return std::asin(a); };

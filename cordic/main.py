@@ -6,11 +6,13 @@ import numpy as np
 def print_ndarray(nd):
     [print('{:.16f}'.format(_nd)) for _nd in nd]
 
-mode = ['acos', 'cordic_acos']
+mode = ['sin', 'cordic_sin']
 cordic_n = 18
 dx = 0.001
-start = -1
-end = 1
+start = -math.pi / 2
+end = math.pi / 2
+# start = -0.9
+# end = 0.9
 # main.pyのあるディレクトリに移動
 os.chdir(os.path.dirname(__file__))
 # cmake&実行
@@ -34,11 +36,13 @@ for i in range(len(x)):
 diff = np.zeros(len(y1), dtype='float64')
 for i in range(len(y1)):
     diff[i] = (y1[i] - y2[i])
-print_ndarray(diff)
+# print_ndarray(diff)
 
 # y1 = y1 * 180 / np.pi
 # y2 = y2 * 180 / np.pi
 
 fig, ax = plt.subplots()
-ax.plot(x,diff)
+# ax.plot(x,y1)
+# ax.plot(x,y2)
+ax.plot(x, diff)
 plt.show()
