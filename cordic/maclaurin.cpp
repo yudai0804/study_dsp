@@ -1,9 +1,15 @@
 #include <stdio.h>
 
 #include <cmath>
+#include <vector>
 
 namespace maclaurin {
 
+/**
+ * @brief
+ * @param x
+ * @return double x!
+ */
 static double factorial(int x) {
   if (x == 1 || x == 0) {
     return 1;
@@ -11,6 +17,12 @@ static double factorial(int x) {
     return x * factorial(x - 1);
 }
 
+/**
+ * @brief
+ * @param x
+ * @param n
+ * @return double x^n
+ */
 static double power(double x, int n) {
   double y = 1;
   for (int i = 0; i < n; i++) {
@@ -19,7 +31,35 @@ static double power(double x, int n) {
   return y;
 }
 
-static double bernoulli() {}
+/**
+ * @brief
+ *
+ * @param n
+ * @param k
+ * @return double n!/(k!*(n-k)!)
+ */
+static double combinetion(double n, double k) {
+  return factorial(n) / factorial(k) / factorial(n - k);
+}
+
+/**
+ * @brief
+ * @param n
+ * @return double
+ */
+static double bernoulli(int n) {
+  if (n == 0) return 1;
+  std::vector<double> b(n + 1);
+  b[0] = 1;
+  for (int i = 1; i <= n; i++) {
+    double sum = 0;
+    for (int j = 0; j < i; j++) {
+      sum += combinetion(i + 1, j) * b[j];
+    }
+    b[i] = -1 / ((double)i + 1) * sum;
+  }
+  return b[n];
+}
 
 /**
  * @brief sinのn次マクローリン展開
@@ -80,7 +120,12 @@ double sqrt(double a);
 }  // namespace maclaurin
 
 int main(void) {
-  for (double i = -M_PI / 2; i < M_PI / 2; i += 0.01) {
-    printf("%f %f %f\r\n", i, std::cos(i), maclaurin::cos(i, 6));
+  printf("program start\r\n");
+  // for (double i = -M_PI / 2; i < M_PI / 2; i += 0.01) {
+  //   printf("%f %f %f\r\n", i, std::cos(i), maclaurin::cos(i, 6));
+  // }
+  for (int i = 0; i < 7; i++) {
+    printf("%d %f\r\n", i, maclaurin::bernoulli(i));
   }
+  return 0;
 }
