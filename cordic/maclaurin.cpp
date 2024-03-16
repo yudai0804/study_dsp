@@ -142,7 +142,13 @@ double tan_bernoulli(double x, int n) {
   return y;
 }
 
-double tan(double x, int n) { return sin(x, n) / cos(x, n - 1); }
+double tan(double x, int n) {
+  if (n % 2 == 0) {
+    printf("n = %d is error\r\n", n);
+    return 0;
+  }
+  return sin(x, n) / cos(x, n - 1);
+}
 
 double asin(double a);
 double acos(double a);
