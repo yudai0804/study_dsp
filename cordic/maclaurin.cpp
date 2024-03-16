@@ -75,15 +75,11 @@ double sin(double x, int n) {
   }
   // nを1,3,5,...から0,1,2,...の並びにする
   n = n / 2;
-  double y = x;
-  double sign = 1.0;
-  double px = x;
-  double f = 1.0;
+  double yn = x;
+  double y = yn;
   for (int i = 1; i < n; i++) {
-    sign = -sign;
-    f *= (double)((2 * i + 1) * (2 * i));
-    px *= x * x;
-    y += sign / f * px;
+    yn *= -1.0 / (double)((2 * i + 1) * (2 * i)) * x * x;
+    y += yn;
   }
   return y;
 }
@@ -101,16 +97,11 @@ double cos(double x, int n) {
   }
   // nを0,2,4,...から0,1,2,...の並びにする
   n = n / 2;
-  // n=0のとき
-  double y = 1;
-  double sign = 1.0;
-  double px = 1;
-  double f = 1.0;
+  double yn = 1;
+  double y = yn;
   for (int i = 1; i < n; i++) {
-    sign = -sign;
-    f *= (double)((2 * i) * (2 * i - 1));
-    px *= x * x;
-    y += sign / f * px;
+    yn *= -1.0 / (double)((2 * i) * (2 * i - 1)) * x * x;
+    y += yn;
   }
   return y;
 }
@@ -151,18 +142,18 @@ double tan(double x, int n) {
   return sin(x, n) / cos(x, n - 1);
 }
 
-double asin(double a);
-double acos(double a);
-double atan(double a);
-double sinh(double a);
-double cosh(double a);
-double tanh(double a);
-double asinh(double a);
-double acosh(double a);
-double atanh(double a);
-double log(double a);
-double exp(double a);
-double sqrt(double a);
+double asin(double x) {}
+double acos(double x);
+double atan(double x);
+double sinh(double x);
+double cosh(double x);
+double tanh(double x);
+double asinh(double x);
+double acosh(double x);
+double atanh(double x);
+double log(double x);
+double exp(double x);
+double sqrt(double x);
 
 }  // namespace maclaurin
 
@@ -171,7 +162,7 @@ int main(void) {
   for (double i = -M_PI / 2; i < M_PI / 2; i += 0.01) {
     printf("%f %f %f, %f\r\n", i, std::tan(i), maclaurin::tan_bernoulli(i, 19),
            maclaurin::sin(i, 19) / maclaurin::cos(i, 18));
-    // printf("%f %f %f\r\n", i, std::sin(i), maclaurin::sin(i, 19));
+    // printf("%f %f %f\r\n", i, std::cos(i), maclaurin::cos(i, 18));
   }
   // for (int i = 0; i < 7; i++) {
   //   printf("%d %f\r\n", i, maclaurin::bernoulli(i));
