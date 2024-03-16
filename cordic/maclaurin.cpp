@@ -75,15 +75,15 @@ double sin(double x, int n) {
   }
   // nを1,3,5,...から0,1,2,...の並びにする
   n = n / 2;
-  double y = 0;
+  double y = x;
   double sign = 1.0;
   double px = x;
   double f = 1.0;
-  for (int i = 0; i < n; i++) {
-    y += sign / f * px;
+  for (int i = 1; i < n; i++) {
     sign = -sign;
-    f *= (double)(2 * (i + 1) + 1) * (double)(2 * (i + 1));
+    f *= (double)((2 * i + 1) * (2 * i));
     px *= x * x;
+    y += sign / f * px;
   }
   return y;
 }
@@ -101,15 +101,16 @@ double cos(double x, int n) {
   }
   // nを0,2,4,...から0,1,2,...の並びにする
   n = n / 2;
-  double y = 0;
+  // n=0のとき
+  double y = 1;
   double sign = 1.0;
   double px = 1;
   double f = 1.0;
-  for (int i = 0; i < n; i++) {
-    y += sign / f * px;
+  for (int i = 1; i < n; i++) {
     sign = -sign;
-    f *= (double)(2 * (i + 1)) * (double)(2 * (i + 1) - 1);
+    f *= (double)((2 * i) * (2 * i - 1));
     px *= x * x;
+    y += sign / f * px;
   }
   return y;
 }
@@ -126,18 +127,18 @@ double tan_bernoulli(double x, int n) {
     return 0;
   }
   n = n / 2 + 1;
-  double y = 0;
+  double y = bernoulli(2) * (-4.0) * (1 - 4) / 2.0 * x;
   double sign = -1.0;
   // pn = 4^n
   double pn = 4;
   double px = x;
   double f = 2;
-  for (int i = 1; i <= n; i++) {
-    y += bernoulli(2 * i) * sign * pn * (1.0 - pn) / f * px;
+  for (int i = 2; i <= n; i++) {
     sign = -sign;
     pn *= 4.0;
-    f *= (double)(2 * (i + 1)) * (double)(2 * (i + 1) - 1);
+    f *= (double)((2 * i) * (2 * i - 1));
     px *= x * x;
+    y += bernoulli(2 * i) * sign * pn * (1.0 - pn) / f * px;
   }
   return y;
 }
@@ -168,9 +169,9 @@ double sqrt(double a);
 int main(void) {
   printf("program start\r\n");
   for (double i = -M_PI / 2; i < M_PI / 2; i += 0.01) {
-    printf("%f %f %f, %f\r\n", i, std::tan(i), maclaurin::tan(i, 19),
+    printf("%f %f %f, %f\r\n", i, std::tan(i), maclaurin::tan_bernoulli(i, 19),
            maclaurin::sin(i, 19) / maclaurin::cos(i, 18));
-    // printf("%f %f %f\r\n", i, std::cos(i), maclaurin::cos(i, 18));
+    // printf("%f %f %f\r\n", i, std::sin(i), maclaurin::sin(i, 19));
   }
   // for (int i = 0; i < 7; i++) {
   //   printf("%d %f\r\n", i, maclaurin::bernoulli(i));
